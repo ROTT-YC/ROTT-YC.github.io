@@ -1,0 +1,672 @@
+<!DOCTYPE html>
+<html lang="zh-TW">
+<head>
+<meta charset="UTF-8">
+<meta name="referrer" content="strict-origin-when-cross-origin">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>🎵 猜音樂</title>
+<style>
+  *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+
+  :root {
+    --bg: #0f0f1a;
+    --surface: #1a1a2e;
+    --surface2: #22223b;
+    --border: rgba(255,255,255,0.08);
+    --border2: rgba(255,255,255,0.15);
+    --text: #e8e8f0;
+    --text2: #9090b0;
+    --accent: #7c6ff7;
+    --accent-light: #a89cf8;
+    --accent-bg: rgba(124,111,247,0.12);
+    --correct: #4caf82;
+    --correct-bg: rgba(76,175,130,0.12);
+    --wrong: #e05c5c;
+    --wrong-bg: rgba(224,92,92,0.12);
+    --radius: 12px;
+    --radius-sm: 8px;
+  }
+
+  body {
+    background: var(--bg);
+    color: var(--text);
+    font-family: 'Segoe UI', 'PingFang TC', 'Noto Sans TC', sans-serif;
+    min-height: 100vh;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    padding: 1.5rem;
+  }
+
+  #app {
+    width: 100%;
+    max-width: 580px;
+  }
+
+  /* Header */
+  .header {
+    text-align: center;
+    margin-bottom: 2rem;
+  }
+  .header h1 {
+    font-size: 28px;
+    font-weight: 600;
+    letter-spacing: -0.5px;
+    background: linear-gradient(135deg, #a89cf8, #7c6ff7, #5e5ce6);
+    -webkit-background-clip: text;
+    -webkit-text-fill-color: transparent;
+    background-clip: text;
+    margin-bottom: 6px;
+  }
+  .header p {
+    font-size: 14px;
+    color: var(--text2);
+  }
+
+  /* Card */
+  .card {
+    background: var(--surface);
+    border: 0.5px solid var(--border2);
+    border-radius: var(--radius);
+    padding: 1.5rem;
+    margin-bottom: 1rem;
+  }
+
+  /* Tabs */
+  .tab-row {
+    display: flex;
+    border-bottom: 0.5px solid var(--border);
+    margin-bottom: 1.5rem;
+  }
+  .tab {
+    padding: 8px 18px;
+    font-size: 14px;
+    cursor: pointer;
+    color: var(--text2);
+    border-bottom: 2px solid transparent;
+    margin-bottom: -1px;
+    transition: all 0.15s;
+  }
+  .tab.active {
+    color: var(--accent-light);
+    border-bottom-color: var(--accent);
+    font-weight: 500;
+  }
+
+  /* Section label */
+  .section-label {
+    font-size: 12px;
+    color: var(--text2);
+    text-transform: uppercase;
+    letter-spacing: 0.08em;
+    margin-bottom: 12px;
+  }
+
+  /* Category buttons */
+  .cat-grid {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 8px;
+    margin-bottom: 1.5rem;
+  }
+  .cat-btn {
+    border: 0.5px solid var(--border2);
+    border-radius: 20px;
+    padding: 6px 16px;
+    font-size: 13px;
+    cursor: pointer;
+    background: transparent;
+    color: var(--text2);
+    transition: all 0.15s;
+  }
+  .cat-btn:hover { border-color: var(--accent); color: var(--accent-light); }
+  .cat-btn.selected {
+    background: var(--accent-bg);
+    border-color: var(--accent);
+    color: var(--accent-light);
+    font-weight: 500;
+  }
+
+  /* Start button */
+  .start-btn {
+    width: 100%;
+    padding: 13px;
+    border-radius: var(--radius-sm);
+    border: none;
+    background: var(--accent);
+    color: #fff;
+    font-size: 15px;
+    font-weight: 500;
+    cursor: pointer;
+    transition: opacity 0.15s, transform 0.1s;
+  }
+  .start-btn:hover { opacity: 0.88; }
+  .start-btn:active { transform: scale(0.98); }
+  .start-btn:disabled { opacity: 0.35; cursor: not-allowed; }
+
+  /* Status bar */
+  .status-bar {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    margin-bottom: 1rem;
+  }
+  .progress-txt { font-size: 13px; color: var(--text2); }
+  .score-txt { font-size: 14px; font-weight: 500; color: var(--accent-light); }
+
+  /* Playing badge */
+  .playing-badge {
+    display: inline-flex;
+    align-items: center;
+    gap: 7px;
+    background: var(--accent-bg);
+    border: 0.5px solid rgba(124,111,247,0.3);
+    border-radius: 20px;
+    padding: 5px 14px;
+    font-size: 12px;
+    color: var(--accent-light);
+    margin-bottom: 12px;
+    font-weight: 500;
+  }
+  .dot {
+    width: 7px; height: 7px;
+    border-radius: 50%;
+    background: var(--accent-light);
+    animation: pulse 1.2s infinite;
+  }
+  @keyframes pulse { 0%,100%{opacity:1} 50%{opacity:0.2} }
+
+  /* Player */
+  #player-container {
+    background: var(--surface2);
+    border-radius: var(--radius-sm);
+    overflow: hidden;
+    margin-bottom: 1.25rem;
+    position: relative;
+  }
+  #yt-player { display: block; width: 100%; }
+
+  /* Options */
+  .options-grid {
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    gap: 10px;
+    margin-bottom: 1rem;
+  }
+  .opt-btn {
+    border: 0.5px solid var(--border2);
+    border-radius: var(--radius-sm);
+    padding: 14px 12px;
+    font-size: 13px;
+    cursor: pointer;
+    background: var(--surface2);
+    color: var(--text);
+    text-align: left;
+    transition: all 0.15s;
+    line-height: 1.5;
+  }
+  .opt-btn:hover:not(:disabled) {
+    border-color: var(--accent);
+    background: var(--accent-bg);
+    color: var(--accent-light);
+  }
+  .opt-btn.correct {
+    background: var(--correct-bg);
+    border-color: var(--correct);
+    color: var(--correct);
+  }
+  .opt-btn.wrong {
+    background: var(--wrong-bg);
+    border-color: var(--wrong);
+    color: var(--wrong);
+  }
+  .opt-btn:disabled { cursor: default; }
+
+  /* Feedback */
+  .feedback {
+    text-align: center;
+    padding: 11px;
+    border-radius: var(--radius-sm);
+    font-size: 14px;
+    font-weight: 500;
+    margin-bottom: 1rem;
+  }
+  .feedback.correct { background: var(--correct-bg); color: var(--correct); border: 0.5px solid rgba(76,175,130,0.3); }
+  .feedback.wrong { background: var(--wrong-bg); color: var(--wrong); border: 0.5px solid rgba(224,92,92,0.3); }
+
+  /* Next button */
+  .next-btn {
+    width: 100%;
+    padding: 12px;
+    border-radius: var(--radius-sm);
+    border: 0.5px solid var(--border2);
+    background: var(--surface2);
+    color: var(--text);
+    font-size: 14px;
+    cursor: pointer;
+    transition: all 0.15s;
+  }
+  .next-btn:hover { border-color: var(--accent); color: var(--accent-light); background: var(--accent-bg); }
+
+  /* Result */
+  .result-inner {
+    text-align: center;
+    padding: 1.5rem 1rem;
+  }
+  .result-emoji { font-size: 48px; margin-bottom: 1rem; }
+  .result-msg { font-size: 20px; font-weight: 600; margin-bottom: 0.5rem; }
+  .result-score {
+    font-size: 52px;
+    font-weight: 700;
+    color: var(--accent-light);
+    margin: 0.75rem 0 0.25rem;
+  }
+  .result-label { font-size: 14px; color: var(--text2); margin-bottom: 1.75rem; }
+  .restart-btn {
+    padding: 12px 36px;
+    border-radius: var(--radius-sm);
+    border: none;
+    background: var(--accent);
+    color: #fff;
+    font-size: 14px;
+    font-weight: 500;
+    cursor: pointer;
+    transition: opacity 0.15s;
+  }
+  .restart-btn:hover { opacity: 0.88; }
+
+  /* Import */
+  .import-area {
+    width: 100%;
+    min-height: 120px;
+    border: 0.5px solid var(--border2);
+    border-radius: var(--radius-sm);
+    padding: 12px;
+    font-size: 12px;
+    font-family: 'Consolas', 'Courier New', monospace;
+    color: var(--text);
+    background: var(--surface2);
+    resize: vertical;
+  }
+  .import-btn {
+    margin-top: 10px;
+    padding: 8px 20px;
+    border-radius: var(--radius-sm);
+    border: 0.5px solid var(--border2);
+    background: transparent;
+    color: var(--text);
+    font-size: 13px;
+    cursor: pointer;
+    transition: all 0.15s;
+  }
+  .import-btn:hover { border-color: var(--accent); color: var(--accent-light); }
+  .err { color: var(--wrong); font-size: 13px; margin-top: 8px; }
+  .ok { color: var(--correct); font-size: 13px; margin-top: 8px; }
+
+  /* Countdown */
+  .countdown-bar-wrap {
+    width: 100%;
+    height: 3px;
+    background: var(--border);
+    border-radius: 2px;
+    margin-bottom: 1.25rem;
+    overflow: hidden;
+  }
+  .countdown-bar {
+    height: 100%;
+    background: var(--accent);
+    border-radius: 2px;
+    transition: width 1s linear;
+  }
+
+  @media (max-width: 480px) {
+    .options-grid { grid-template-columns: 1fr; }
+    .header h1 { font-size: 24px; }
+  }
+</style>
+</head>
+<body>
+<div id="app">
+  <div class="header">
+    <h1>🎵 猜音樂</h1>
+    <p>聽片段，猜出正確答案！</p>
+  </div>
+
+  <div id="screen-setup">
+    <div class="card">
+      <div class="tab-row">
+        <div class="tab active" id="tab-play" onclick="switchTab('play')">開始遊戲</div>
+        <div class="tab" id="tab-import" onclick="switchTab('import')">匯入歌單</div>
+      </div>
+
+      <div id="panel-play">
+        <p class="section-label">選擇分類</p>
+        <div class="cat-grid" id="cat-grid"></div>
+        <button class="start-btn" id="start-btn" onclick="startGame()">開始遊戲</button>
+      </div>
+
+      <div id="panel-import" style="display:none">
+        <p class="section-label">貼上 JSON 歌單</p>
+        <textarea class="import-area" id="json-input" placeholder='{"songs":[{"id":1,"youtubeId":"dQw4w9WgXcQ","segments":[{"start":10,"end":25}],"answer":"歌名 - 歌手","category":"分類"}]}'></textarea>
+        <div><button class="import-btn" onclick="importJSON()">匯入並套用</button></div>
+        <p id="import-msg"></p>
+      </div>
+    </div>
+
+    <p style="text-align:center; font-size:12px; color: var(--text2); margin-top: 0.5rem;">
+      目前歌單：<span id="song-count">0</span> 首
+    </p>
+  </div>
+
+  <div id="screen-game" style="display:none">
+    <div class="status-bar">
+      <span class="progress-txt" id="progress-txt"></span>
+      <span class="score-txt" id="score-txt"></span>
+    </div>
+    <div class="playing-badge"><span class="dot"></span> 正在播放片段</div>
+    <div class="countdown-bar-wrap"><div class="countdown-bar" id="countdown-bar" style="width:100%"></div></div>
+    <div id="player-container">
+      <div id="yt-player"></div>
+    </div>
+    <div class="options-grid" id="options-grid"></div>
+    <div id="feedback" style="display:none" class="feedback"></div>
+    <button class="next-btn" id="next-btn" style="display:none" onclick="nextQuestion()">下一題 →</button>
+  </div>
+
+  <div id="screen-result" style="display:none">
+    <div class="card">
+      <div class="result-inner">
+        <div class="result-emoji" id="result-emoji"></div>
+        <p class="result-msg" id="result-msg"></p>
+        <div class="result-score" id="result-score"></div>
+        <p class="result-label" id="result-label"></p>
+        <button class="restart-btn" onclick="goSetup()">再玩一次</button>
+      </div>
+    </div>
+  </div>
+</div>
+
+<script>
+// ── 預設歌單 ──────────────────────────────────────────────
+let songs = [
+  {id:1,youtubeId:"6ugtWT_iNqw",segments:[{start:3,end:10},{start:113,end:130}],answer:"5.0主題曲",category:"豆芽"},
+  {id:2,youtubeId:"guDguPQvRCQ",segments:[{start:28,end:40}],answer:"十二神-月與慈愛",category:"豆花"},
+  {id:3,youtubeId:"_htiXfLqXxU",segments:[{start:0,end:7}],answer:"尤特蘿普",category:"豆花"},
+  {id:4,youtubeId:"0lEo_QSOC8Q",segments:[{start:0,end:5}],answer:"老闆",category:"豆花"},
+  {id:5,youtubeId:"nih4x5hv89Q",segments:[{start:0,end:5}],answer:"十二神-納爾札爾",category:"豆花"},
+  {id:6,youtubeId:"WbGIB6ffzLM",segments:[{start:0,end:10},{start:95,end:110}],answer:"天坑道中",category:"豆芽"},
+  {id:7,youtubeId:"A70LWm3qSZo",segments:[{start:30,end:50},{start:65,end:90}],answer:"博茲雅-甘戈斯",category:"絕"}
+];
+
+let selectedCats = new Set();
+let queue = [], current = 0, score = 0, answered = false;
+let ytPlayer = null, currentSeg = null, segEndTimer = null, countdownInterval = null;
+let ytReady = false;
+
+// ── YouTube IFrame API ─────────────────────────────────────
+window.onYouTubeIframeAPIReady = function() {
+  ytReady = true;
+};
+(function() {
+  const tag = document.createElement('script');
+  tag.src = 'https://www.youtube.com/iframe_api';
+  document.head.appendChild(tag);
+})();
+
+function createPlayer(videoId, startSec, endSec) {
+  if (ytPlayer) { 
+    try { ytPlayer.destroy(); } catch(e) {} 
+    ytPlayer = null; 
+  }
+  clearTimers();
+  currentSeg = { start: startSec, end: endSec };
+  const duration = endSec - startSec;
+
+  // 關鍵修正 3：精準配置 playerVars，並嚴格檢查與傳遞 origin
+  const playerVarsObj = {
+    autoplay: 1,
+    start: startSec,
+    end: endSec,
+    controls: 1,
+    rel: 0,
+    modestbranding: 1,
+    enablejsapi: 1
+  };
+  
+  // 只有當網頁透過伺服器協定（http/https）開啟時才帶入 origin，本地 file:// 時不帶
+  if (window.location.protocol.startsWith('http')) {
+    playerVarsObj.origin = window.location.origin;
+  }
+
+  ytPlayer = new YT.Player('yt-player', {
+    height: '220',
+    width: '100%',
+    videoId: videoId,
+    playerVars: playerVarsObj,
+    events: {
+      onReady: function(e) {
+        // 確保音量及狀態正常
+        try {
+          e.target.unMute();
+          e.target.setVolume(100);
+          e.target.seekTo(startSec, true);
+          e.target.playVideo();
+        } catch(err) {
+          console.log("播放器初始化微調中");
+        }
+        
+        startCountdown(duration);
+        
+        // 容錯防護：如果部分瀏覽器因為自動播放政策卡住，1秒後再次嘗試喚醒
+        setTimeout(() => {
+          if (ytPlayer && typeof ytPlayer.getPlayerState === 'function' && ytPlayer.getPlayerState() !== 1) {
+            try { ytPlayer.playVideo(); } catch(err) {}
+          }
+        }, 1000);
+
+        segEndTimer = setTimeout(() => {
+          if (ytPlayer && typeof ytPlayer.pauseVideo === 'function') {
+            try { ytPlayer.pauseVideo(); } catch(err) {}
+          }
+        }, duration * 1000);
+      },
+      onStateChange: function(e) {
+        if (e.data === YT.PlayerState.ENDED) clearTimers();
+      }
+    }
+  });
+}
+
+function clearTimers() {
+  if (segEndTimer) { clearTimeout(segEndTimer); segEndTimer = null; }
+  if (countdownInterval) { clearInterval(countdownInterval); countdownInterval = null; }
+}
+
+function startCountdown(duration) {
+  const bar = document.getElementById('countdown-bar');
+  bar.style.transition = 'none';
+  bar.style.width = '100%';
+  setTimeout(() => {
+    bar.style.transition = `width ${duration}s linear`;
+    bar.style.width = '0%';
+  }, 50);
+}
+
+// ── UI helpers ────────────────────────────────────────────
+function getAllAnswers() { return [...new Set(songs.map(s => s.answer))]; }
+
+function renderCats() {
+  const grid = document.getElementById('cat-grid');
+  const cats = [...new Set(songs.map(s => s.category))];
+  grid.innerHTML = '';
+  const allBtn = document.createElement('button');
+  allBtn.className = 'cat-btn' + (selectedCats.size === 0 ? ' selected' : '');
+  allBtn.textContent = '全部';
+  allBtn.onclick = () => { selectedCats.clear(); renderCats(); };
+  grid.appendChild(allBtn);
+  cats.forEach(c => {
+    const btn = document.createElement('button');
+    btn.className = 'cat-btn' + (selectedCats.has(c) ? ' selected' : '');
+    btn.textContent = c;
+    btn.onclick = () => {
+      if (selectedCats.has(c)) selectedCats.delete(c); else selectedCats.add(c);
+      renderCats();
+    };
+    grid.appendChild(btn);
+  });
+  document.getElementById('song-count').textContent = songs.length;
+}
+
+function switchTab(t) {
+  document.getElementById('tab-play').classList.toggle('active', t === 'play');
+  document.getElementById('tab-import').classList.toggle('active', t === 'import');
+  document.getElementById('panel-play').style.display = t === 'play' ? '' : 'none';
+  document.getElementById('panel-import').style.display = t === 'import' ? '' : 'none';
+}
+
+function importJSON() {
+  const txt = document.getElementById('json-input').value.trim();
+  const msg = document.getElementById('import-msg');
+  try {
+    const data = JSON.parse(txt);
+    if (!data.songs || !Array.isArray(data.songs) || data.songs.length < 4) {
+      msg.className = 'err'; msg.textContent = '至少需要 4 首歌曲，且需包含 songs 陣列。'; return;
+    }
+    songs = data.songs;
+    selectedCats.clear();
+    msg.className = 'ok'; msg.textContent = `✓ 成功匯入 ${songs.length} 首歌曲！`;
+    renderCats();
+    document.getElementById('json-input').value = '';
+    setTimeout(() => switchTab('play'), 800);
+  } catch(e) {
+    msg.className = 'err'; msg.textContent = 'JSON 格式錯誤：' + e.message;
+  }
+}
+
+// ── Game logic ────────────────────────────────────────────
+function startGame() {
+  let pool = selectedCats.size === 0 ? songs : songs.filter(s => selectedCats.has(s.category));
+  if (pool.length < 4) { alert('選取分類歌曲不足 4 首，請調整分類。'); return; }
+  queue = shuffle([...pool]).slice(0, Math.min(pool.length, 10));
+  current = 0; score = 0;
+  document.getElementById('screen-setup').style.display = 'none';
+  document.getElementById('screen-result').style.display = 'none';
+  document.getElementById('screen-game').style.display = '';
+  loadQuestion();
+}
+
+function loadQuestion() {
+  answered = false;
+  const q = queue[current];
+  const seg = q.segments[Math.floor(Math.random() * q.segments.length)];
+  document.getElementById('progress-txt').textContent = `第 ${current + 1} / ${queue.length} 題`;
+  document.getElementById('score-txt').textContent = `得分：${score}`;
+  document.getElementById('feedback').style.display = 'none';
+  document.getElementById('next-btn').style.display = 'none';
+
+  buildOptionButtons(q.answer);
+
+  if (ytReady && window.YT && window.YT.Player) {
+    createPlayer(q.youtubeId, seg.start, seg.end);
+  } else {
+    const wait = setInterval(() => {
+      if (ytReady && window.YT && window.YT.Player) { 
+        clearInterval(wait); 
+        createPlayer(q.youtubeId, seg.start, seg.end); 
+      }
+    }, 200);
+  }
+}
+
+function buildOptionButtons(correct) {
+  const pool = getAllAnswers().filter(a => a !== correct);
+  const opts = shuffle([correct, ...shuffle(pool).slice(0, 3)]);
+  const grid = document.getElementById('options-grid');
+  grid.innerHTML = '';
+  opts.forEach(opt => {
+    const btn = document.createElement('button');
+    btn.className = 'opt-btn';
+    btn.textContent = opt;
+    btn.onclick = () => handleAnswer(btn, opt, correct);
+    grid.appendChild(btn);
+  });
+}
+
+function handleAnswer(btn, chosen, correct) {
+  if (answered) return;
+  answered = true;
+  clearTimers();
+  if (ytPlayer && typeof ytPlayer.pauseVideo === 'function') {
+    try { ytPlayer.pauseVideo(); } catch(err) {}
+  }
+
+  document.querySelectorAll('.opt-btn').forEach(b => {
+    b.disabled = true;
+    if (b.textContent === correct) b.classList.add('correct');
+  });
+
+  const fb = document.getElementById('feedback');
+  if (chosen === correct) {
+    score++;
+    btn.classList.add('correct');
+    fb.className = 'feedback correct';
+    fb.textContent = '✓ 答對了！';
+  } else {
+    btn.classList.remove('correct');
+    btn.classList.add('wrong');
+    fb.className = 'feedback wrong';
+    fb.textContent = `✗ 答錯了！正確答案：${correct}`;
+  }
+  fb.style.display = '';
+  document.getElementById('score-txt').textContent = `得分：${score}`;
+  const nb = document.getElementById('next-btn');
+  nb.style.display = '';
+  nb.textContent = current + 1 >= queue.length ? '查看結果 →' : '下一題 →';
+}
+
+function nextQuestion() {
+  current++;
+  if (current >= queue.length) showResult();
+  else loadQuestion();
+}
+
+function showResult() {
+  clearTimers();
+  if (ytPlayer) { try { ytPlayer.destroy(); } catch(e) {} ytPlayer = null; }
+  document.getElementById('screen-game').style.display = 'none';
+  document.getElementById('screen-result').style.display = '';
+  const pct = Math.round(score / queue.length * 100);
+  document.getElementById('result-score').textContent = `${score} / ${queue.length}`;
+  document.getElementById('result-label').textContent = `答對率 ${pct}%`;
+  const levels = [
+    { min: 90, emoji: '🏆', msg: '音樂達人！滿分幾乎到手！' },
+    { min: 60, emoji: '🎵', msg: '相當厲害，繼續加油！' },
+    { min: 30, emoji: '🎧', msg: '還不錯，多聽多練！' },
+    { min: 0,  emoji: '😅', msg: '再接再厲，你可以的！' },
+  ];
+  const lv = levels.find(l => pct >= l.min);
+  document.getElementById('result-emoji').textContent = lv.emoji;
+  document.getElementById('result-msg').textContent = lv.msg;
+}
+
+function goSetup() {
+  clearTimers();
+  if (ytPlayer) { try { ytPlayer.destroy(); } catch(e) {} ytPlayer = null; }
+  document.getElementById('screen-result').style.display = 'none';
+  document.getElementById('screen-game').style.display = 'none';
+  document.getElementById('screen-setup').style.display = '';
+  renderCats();
+}
+
+function shuffle(arr) {
+  for (let i = arr.length - 1; i > 0; i--) {
+    const j = Math.floor(Math.random() * (i + 1));
+    [arr[i], arr[j]] = [arr[j], arr[i]];
+  }
+  return arr;
+}
+
+renderCats();
+</script>
+</body>
+</html>
