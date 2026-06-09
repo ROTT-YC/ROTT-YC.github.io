@@ -515,22 +515,30 @@ function startCountdown(duration) {
 // ── UI helpers ────────────────────────────────────────────
 function getAllAnswers() { return [...new Set(songs.map(s => s.answer))]; }
 
+// 1. 定義一個 UI 顯示用的對照表 (純文字 -> 帶有 Emoji 的顯示名稱)
+const CAT_DISPLAY = {
+  "豆芽": "🌱豆芽",
+  "豆花": "🌻豆花",
+  "絕": "🤡絕"
+};
+// 預設選擇也用純文字
+let selectedCats = new Set(['豆芽']);
 function renderCats() {
   const grid = document.getElementById('cat-grid');
-  const cats = ['🌱豆芽', '🌻豆花', '🤡絕'];
-
+  const cats = ['豆芽', '豆花', '絕'];
   grid.innerHTML = '';
   cats.forEach(c => {
     const btn = document.createElement('button');
     btn.className = 'cat-btn' + (selectedCats.has(c) ? ' selected' : '');
-    btn.textContent = c;
+    btn.textContent = CAT_DISPLAY[c] || c; 
     btn.onclick = () => {
       selectedCats.clear();
-      selectedCats.add(c);
+      selectedCats.add(c); // 存入 Set 的依然是純文字 '豆芽'
       renderCats();
     };
     grid.appendChild(btn);
   });
+  // 更新畫面的總曲目數量
   document.getElementById('song-count').textContent = songs.length;
 }
 
