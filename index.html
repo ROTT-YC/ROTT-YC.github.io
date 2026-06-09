@@ -185,7 +185,7 @@
     /* 這裡不再設定 width/height，交給 JS 將影片設為 0x0 */
   }
   #yt-player { display: block; }
- 
+
   /* Options */
   .options-grid {
     display: grid;
@@ -409,14 +409,14 @@ const CAT_HIERARCHY = {
 function getExpandedCats(selected) {
   const result = new Set();
   selected.forEach(c => {
-    // 這裡會精準比對帶有 Emoji 的 Key，找不到就保留原本的
+
     const expanded = CAT_HIERARCHY[c] || [c];
     expanded.forEach(x => result.add(x));
   });
   return result;
 }
 
-// 預設選擇（同樣改為帶有 Emoji 的版本）
+
 let selectedCats = new Set(['豆芽']);
 let queue = [], current = 0, score = 0, answered = false;
 let ytPlayer = null, currentSeg = null, segEndTimer = null, countdownInterval = null;
@@ -451,7 +451,7 @@ function createPlayer(videoId, startSec, endSec) {
     modestbranding: 1,
     enablejsapi: 1
   };
-  
+
   // 只有當網頁透過伺服器協定（http/https）開啟時才帶入 origin，本地 file:// 時不帶
   if (window.location.protocol.startsWith('http')) {
     playerVarsObj.origin = window.location.origin;
@@ -474,9 +474,9 @@ function createPlayer(videoId, startSec, endSec) {
         } catch(err) {
           console.log("播放器初始化微調中");
         }
-        
+
         startCountdown(duration);
-        
+
         // 容錯防護：如果部分瀏覽器因為自動播放政策卡住，1秒後再次嘗試喚醒
         setTimeout(() => {
           if (ytPlayer && typeof ytPlayer.getPlayerState === 'function' && ytPlayer.getPlayerState() !== 1) {
@@ -515,30 +515,22 @@ function startCountdown(duration) {
 // ── UI helpers ────────────────────────────────────────────
 function getAllAnswers() { return [...new Set(songs.map(s => s.answer))]; }
 
-// 1. 定義一個 UI 顯示用的對照表 (純文字 -> 帶有 Emoji 的顯示名稱)
-const CAT_DISPLAY = {
-  "豆芽": "🌱豆芽",
-  "豆花": "🌻豆花",
-  "絕": "🤡絕"
-};
-// 預設選擇也用純文字
-let selectedCats = new Set(['豆芽']);
 function renderCats() {
   const grid = document.getElementById('cat-grid');
   const cats = ['豆芽', '豆花', '絕'];
+
   grid.innerHTML = '';
   cats.forEach(c => {
     const btn = document.createElement('button');
     btn.className = 'cat-btn' + (selectedCats.has(c) ? ' selected' : '');
-    btn.textContent = CAT_DISPLAY[c] || c; 
+    btn.textContent = c;
     btn.onclick = () => {
       selectedCats.clear();
-      selectedCats.add(c); // 存入 Set 的依然是純文字 '豆芽'
+      selectedCats.add(c);
       renderCats();
     };
     grid.appendChild(btn);
   });
-  // 更新畫面的總曲目數量
   document.getElementById('song-count').textContent = songs.length;
 }
 
