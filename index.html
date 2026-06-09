@@ -25,6 +25,10 @@
     --wrong-bg: rgba(224,92,92,0.12);
     --radius: 12px;
     --radius-sm: 8px;
+
+    /* ── 背景設定（可調參數）──────────────────────────────── */
+    /* 暗色遮罩濃度：數字越大越暗（0.0 全透明 ~ 1.0 全黑） */
+    --bg-overlay-opacity: 0.60;
   }
 
   body {
@@ -70,27 +74,6 @@
     border-radius: var(--radius);
     padding: 1.5rem;
     margin-bottom: 1rem;
-  }
-
-  /* Tabs */
-  .tab-row {
-    display: flex;
-    border-bottom: 0.5px solid var(--border);
-    margin-bottom: 1.5rem;
-  }
-  .tab {
-    padding: 8px 18px;
-    font-size: 14px;
-    cursor: pointer;
-    color: var(--text2);
-    border-bottom: 2px solid transparent;
-    margin-bottom: -1px;
-    transition: all 0.15s;
-  }
-  .tab.active {
-    color: var(--accent-light);
-    border-bottom-color: var(--accent);
-    font-weight: 500;
   }
 
   /* Section label */
@@ -176,14 +159,8 @@
   }
   @keyframes pulse { 0%,100%{opacity:1} 50%{opacity:0.2} }
 
-  /* Player */
-  #player-container {
-    /* 修正：移除背景色和 overflow，將影片畫面隱藏但 API 可運作 */
-    border-radius: var(--radius-sm);
-    margin-bottom: 1.25rem;
-    position: relative;
-    /* 這裡不再設定 width/height，交給 JS 將影片設為 0x0 */
-  }
+  /* Player（0×0，隱藏畫面但 API 可運作） */
+  #player-container { position: relative; margin-bottom: 1.25rem; }
   #yt-player { display: block; }
 
   /* Options */
@@ -210,16 +187,8 @@
     background: var(--accent-bg);
     color: var(--accent-light);
   }
-  .opt-btn.correct {
-    background: var(--correct-bg);
-    border-color: var(--correct);
-    color: var(--correct);
-  }
-  .opt-btn.wrong {
-    background: var(--wrong-bg);
-    border-color: var(--wrong);
-    color: var(--wrong);
-  }
+  .opt-btn.correct { background: var(--correct-bg); border-color: var(--correct); color: var(--correct); }
+  .opt-btn.wrong   { background: var(--wrong-bg);   border-color: var(--wrong);   color: var(--wrong); }
   .opt-btn:disabled { cursor: default; }
 
   /* Feedback */
@@ -232,7 +201,7 @@
     margin-bottom: 1rem;
   }
   .feedback.correct { background: var(--correct-bg); color: var(--correct); border: 0.5px solid rgba(76,175,130,0.3); }
-  .feedback.wrong { background: var(--wrong-bg); color: var(--wrong); border: 0.5px solid rgba(224,92,92,0.3); }
+  .feedback.wrong   { background: var(--wrong-bg);   color: var(--wrong);   border: 0.5px solid rgba(224,92,92,0.3); }
 
   /* Next button */
   .next-btn {
@@ -249,10 +218,7 @@
   .next-btn:hover { border-color: var(--accent); color: var(--accent-light); background: var(--accent-bg); }
 
   /* Result */
-  .result-inner {
-    text-align: center;
-    padding: 1.5rem 1rem;
-  }
+  .result-inner { text-align: center; padding: 1.5rem 1rem; }
   .result-emoji { font-size: 48px; margin-bottom: 1rem; }
   .result-msg { font-size: 20px; font-weight: 600; margin-bottom: 0.5rem; }
   .result-score {
@@ -275,34 +241,6 @@
   }
   .restart-btn:hover { opacity: 0.88; }
 
-  /* Import */
-  .import-area {
-    width: 100%;
-    min-height: 120px;
-    border: 0.5px solid var(--border2);
-    border-radius: var(--radius-sm);
-    padding: 12px;
-    font-size: 12px;
-    font-family: 'Consolas', 'Courier New', monospace;
-    color: var(--text);
-    background: var(--surface2);
-    resize: vertical;
-  }
-  .import-btn {
-    margin-top: 10px;
-    padding: 8px 20px;
-    border-radius: var(--radius-sm);
-    border: 0.5px solid var(--border2);
-    background: transparent;
-    color: var(--text);
-    font-size: 13px;
-    cursor: pointer;
-    transition: all 0.15s;
-  }
-  .import-btn:hover { border-color: var(--accent); color: var(--accent-light); }
-  .err { color: var(--wrong); font-size: 13px; margin-top: 8px; }
-  .ok { color: var(--correct); font-size: 13px; margin-top: 8px; }
-
   /* Countdown */
   .countdown-bar-wrap {
     width: 100%;
@@ -319,6 +257,22 @@
     transition: width 1s linear;
   }
 
+  /* ── 背景圖 ─────────────────────────────────────────────── */
+  .bg-slide {
+    position: fixed;
+    inset: 0;
+    z-index: -2;
+    background-size: cover;
+    background-position: center;
+    background-repeat: no-repeat;
+  }
+  .bg-overlay {
+    position: fixed;
+    inset: 0;
+    z-index: -1;
+    background: rgba(10, 10, 20, var(--bg-overlay-opacity));
+  }
+
   @media (max-width: 480px) {
     .options-grid { grid-template-columns: 1fr; }
     .header h1 { font-size: 24px; }
@@ -326,6 +280,10 @@
 </style>
 </head>
 <body>
+
+<div class="bg-slide" id="bg-slide"></div>
+<div class="bg-overlay"></div>
+
 <div id="app">
   <div class="header">
     <h1>🎵 猜音樂</h1>
@@ -334,25 +292,10 @@
 
   <div id="screen-setup">
     <div class="card">
-      <div class="tab-row">
-        <div class="tab active" id="tab-play" onclick="switchTab('play')">開始遊戲</div>
-        <div class="tab" id="tab-import" onclick="switchTab('import')">匯入歌單</div>
-      </div>
-
-      <div id="panel-play">
-        <p class="section-label">選擇分類</p>
-        <div class="cat-grid" id="cat-grid"></div>
-        <button class="start-btn" id="start-btn" onclick="startGame()">開始遊戲</button>
-      </div>
-
-      <div id="panel-import" style="display:none">
-        <p class="section-label">貼上 JSON 歌單</p>
-        <textarea class="import-area" id="json-input" placeholder='{"songs":[{"id":1,"youtubeId":"dQw4w9WgXcQ","segments":[{"start":10,"end":25}],"answer":"歌名 - 歌手","category":"分類"}]}'></textarea>
-        <div><button class="import-btn" onclick="importJSON()">匯入並套用</button></div>
-        <p id="import-msg"></p>
-      </div>
+      <p class="section-label">選擇分類</p>
+      <div class="cat-grid" id="cat-grid"></div>
+      <button class="start-btn" id="start-btn" onclick="startGame()" disabled>載入歌單中…</button>
     </div>
-
     <p style="text-align:center; font-size:12px; color: var(--text2); margin-top: 0.5rem;">
       目前歌單：<span id="song-count">0</span> 首
     </p>
@@ -365,9 +308,7 @@
     </div>
     <div class="playing-badge"><span class="dot"></span> 正在播放片段</div>
     <div class="countdown-bar-wrap"><div class="countdown-bar" id="countdown-bar" style="width:100%"></div></div>
-    <div id="player-container">
-      <div id="yt-player"></div>
-    </div>
+    <div id="player-container"><div id="yt-player"></div></div>
     <div class="options-grid" id="options-grid"></div>
     <div id="feedback" style="display:none" class="feedback"></div>
     <button class="next-btn" id="next-btn" style="display:none" onclick="nextQuestion()">下一題 →</button>
@@ -387,182 +328,145 @@
 </div>
 
 <script>
-// ── 預設歌單 ──────────────────────────────────────────────
-let songs = [
-  {id:1,youtubeId:"6ugtWT_iNqw",segments:[{start:3,end:10},{start:113,end:130}],answer:"ShadowBringer",category:"豆芽"},
-  {id:2,youtubeId:"guDguPQvRCQ",segments:[{start:28,end:40}],answer:"梅因菲娜",category:"豆花"},
-  {id:3,youtubeId:"_htiXfLqXxU",segments:[{start:0,end:7}],answer:"阿卡狄亞 輕量四 狡雷",category:"豆花"},
-  {id:4,youtubeId:"0lEo_QSOC8Q",segments:[{start:0,end:5}],answer:"阿卡狄亞 重量一 P1",category:"豆花"},
-  {id:5,youtubeId:"nih4x5hv89Q",segments:[{start:0,end:5}],answer:"納爾札爾",category:"豆花"},
-  {id:6,youtubeId:"WbGIB6ffzLM",segments:[{start:0,end:10},{start:95,end:110}],answer:"道中_神聖禁地深空天坑",category:"豆芽"},
-  {id:7,youtubeId:"A70LWm3qSZo",segments:[{start:30,end:50},{start:65,end:90}],answer:"博茲雅-甘戈斯",category:"絕"},
-  {id:8,youtubeId:"Rn8bylpP65c",segments:[{start:0,end:15},{start:100,end:115},{start:283,end:293}],answer:"拉姆減滅戰~雷光雷鳴~",category:"豆芽"}
-];
+// ════════════════════════════════════════════════════════════
+//  可調參數
+// ════════════════════════════════════════════════════════════
+// 背景圖張數（Bg/bg1.jpg ~ Bg/bgN.jpg）
+const BG_TOTAL = 21;
 
-// ── 分類階層：選擇某分類時，同時包含其下層分類 ──────────────
+// 遮罩濃度另在 CSS :root 的 --bg-overlay-opacity 調整
+
+// ════════════════════════════════════════════════════════════
+//  隨機背景圖
+// ════════════════════════════════════════════════════════════
+(function() {
+  const pick = Math.floor(Math.random() * BG_TOTAL) + 1;
+  document.getElementById('bg-slide').style.backgroundImage = `url('Bg/bg${pick}.jpg')`;
+})();
+
+// ════════════════════════════════════════════════════════════
+//  歌單（從 songs.json fetch）
+// ════════════════════════════════════════════════════════════
+let songs = [];
+
+async function loadSongs() {
+  try {
+    const res = await fetch('Songs.json');
+    if (!res.ok) throw new Error(`HTTP ${res.status}`);
+    const data = await res.json();
+    if (!Array.isArray(data.songs)) throw new Error('格式錯誤');
+    songs = data.songs;
+  } catch (e) {
+    console.error('歌單載入失敗', e);
+    document.getElementById('song-count').textContent = '載入失敗';
+    document.getElementById('start-btn').textContent = '歌單載入失敗，請重新整理';
+    return;
+  }
+  renderCats();
+  const btn = document.getElementById('start-btn');
+  btn.textContent = '開始遊戲';
+  btn.disabled = false;
+}
+
+// ════════════════════════════════════════════════════════════
+//  分類
+// ════════════════════════════════════════════════════════════
+const CAT_LABELS = {
+  '豆芽': '🌱 豆芽',
+  '豆花': '🌻 豆花',
+  '絕':   '🤡 絕'
+};
 const CAT_HIERARCHY = {
-  "絕":   ["絕", "豆花", "豆芽"],
-  "豆花": ["豆花", "豆芽"],
-  "豆芽": ["豆芽"]
+  '絕':   ['絕', '豆花', '豆芽'],
+  '豆花': ['豆花', '豆芽'],
+  '豆芽': ['豆芽']
 };
 
 function getExpandedCats(selected) {
   const result = new Set();
-  selected.forEach(c => {
-
-    const expanded = CAT_HIERARCHY[c] || [c];
-    expanded.forEach(x => result.add(x));
-  });
+  selected.forEach(c => (CAT_HIERARCHY[c] || [c]).forEach(x => result.add(x)));
   return result;
 }
 
-
 let selectedCats = new Set(['豆芽']);
-let queue = [], current = 0, score = 0, answered = false;
-let ytPlayer = null, currentSeg = null, segEndTimer = null, countdownInterval = null;
-let ytReady = false;
 
-// ── YouTube IFrame API ─────────────────────────────────────
-window.onYouTubeIframeAPIReady = function() {
-  ytReady = true;
-};
+function renderCats() {
+  const grid = document.getElementById('cat-grid');
+  grid.innerHTML = '';
+  ['豆芽', '豆花', '絕'].forEach(c => {
+    const btn = document.createElement('button');
+    btn.className = 'cat-btn' + (selectedCats.has(c) ? ' selected' : '');
+    btn.textContent = CAT_LABELS[c] || c;
+    btn.onclick = () => { selectedCats.clear(); selectedCats.add(c); renderCats(); };
+    grid.appendChild(btn);
+  });
+  document.getElementById('song-count').textContent = songs.length;
+}
+
+// ════════════════════════════════════════════════════════════
+//  YouTube IFrame API
+// ════════════════════════════════════════════════════════════
+let ytReady = false;
+window.onYouTubeIframeAPIReady = () => { ytReady = true; };
 (function() {
   const tag = document.createElement('script');
   tag.src = 'https://www.youtube.com/iframe_api';
   document.head.appendChild(tag);
 })();
 
+let ytPlayer = null, segEndTimer = null;
+
 function createPlayer(videoId, startSec, endSec) {
-  if (ytPlayer) { 
-    try { ytPlayer.destroy(); } catch(e) {} 
-    ytPlayer = null; 
-  }
+  if (ytPlayer) { try { ytPlayer.destroy(); } catch(e) {} ytPlayer = null; }
   clearTimers();
-  currentSeg = { start: startSec, end: endSec };
   const duration = endSec - startSec;
 
-  // 關鍵修正 3：精準配置 playerVars，並嚴格檢查與傳遞 origin
-  const playerVarsObj = {
-    autoplay: 1,
-    start: startSec,
-    end: endSec,
-    controls: 1,
-    rel: 0,
-    modestbranding: 1,
-    enablejsapi: 1
-  };
+  const playerVars = { autoplay: 1, start: startSec, end: endSec, controls: 1, rel: 0, modestbranding: 1, enablejsapi: 1 };
+  if (window.location.protocol.startsWith('http')) playerVars.origin = window.location.origin;
 
-  // 只有當網頁透過伺服器協定（http/https）開啟時才帶入 origin，本地 file:// 時不帶
-  if (window.location.protocol.startsWith('http')) {
-    playerVarsObj.origin = window.location.origin;
-  }
-
-  // 關鍵修正：將影片寬高設為 '0'，隱藏畫面
   ytPlayer = new YT.Player('yt-player', {
-    height: '0',
-    width: '0',
-    videoId: videoId,
-    playerVars: playerVarsObj,
+    height: '0', width: '0', videoId,
+    playerVars,
     events: {
-      onReady: function(e) {
-        // 確保音量及狀態正常
-        try {
-          e.target.unMute();
-          e.target.setVolume(100);
-          e.target.seekTo(startSec, true);
-          e.target.playVideo();
-        } catch(err) {
-          console.log("播放器初始化微調中");
-        }
-
+      onReady(e) {
+        try { e.target.unMute(); e.target.setVolume(100); e.target.seekTo(startSec, true); e.target.playVideo(); }
+        catch(err) { console.log('播放器初始化微調中'); }
         startCountdown(duration);
-
-        // 容錯防護：如果部分瀏覽器因為自動播放政策卡住，1秒後再次嘗試喚醒
+        // 容錯：自動播放政策卡住時 1 秒後再試
         setTimeout(() => {
           if (ytPlayer && typeof ytPlayer.getPlayerState === 'function' && ytPlayer.getPlayerState() !== 1) {
             try { ytPlayer.playVideo(); } catch(err) {}
           }
         }, 1000);
-
         segEndTimer = setTimeout(() => {
-          if (ytPlayer && typeof ytPlayer.pauseVideo === 'function') {
-            try { ytPlayer.pauseVideo(); } catch(err) {}
-          }
+          try { ytPlayer && ytPlayer.pauseVideo(); } catch(err) {}
         }, duration * 1000);
       },
-      onStateChange: function(e) {
-        if (e.data === YT.PlayerState.ENDED) clearTimers();
-      }
+      onStateChange(e) { if (e.data === YT.PlayerState.ENDED) clearTimers(); }
     }
   });
 }
 
 function clearTimers() {
   if (segEndTimer) { clearTimeout(segEndTimer); segEndTimer = null; }
-  if (countdownInterval) { clearInterval(countdownInterval); countdownInterval = null; }
 }
 
 function startCountdown(duration) {
   const bar = document.getElementById('countdown-bar');
   bar.style.transition = 'none';
   bar.style.width = '100%';
-  setTimeout(() => {
-    bar.style.transition = `width ${duration}s linear`;
-    bar.style.width = '0%';
-  }, 50);
+  setTimeout(() => { bar.style.transition = `width ${duration}s linear`; bar.style.width = '0%'; }, 50);
 }
 
-// ── UI helpers ────────────────────────────────────────────
+// ════════════════════════════════════════════════════════════
+//  Game logic
+// ════════════════════════════════════════════════════════════
+let queue = [], current = 0, score = 0, answered = false;
+
 function getAllAnswers() { return [...new Set(songs.map(s => s.answer))]; }
 
-function renderCats() {
-  const grid = document.getElementById('cat-grid');
-  const cats = ['豆芽', '豆花', '絕'];
-
-  grid.innerHTML = '';
-  cats.forEach(c => {
-    const btn = document.createElement('button');
-    btn.className = 'cat-btn' + (selectedCats.has(c) ? ' selected' : '');
-    btn.textContent = c;
-    btn.onclick = () => {
-      selectedCats.clear();
-      selectedCats.add(c);
-      renderCats();
-    };
-    grid.appendChild(btn);
-  });
-  document.getElementById('song-count').textContent = songs.length;
-}
-
-function switchTab(t) {
-  document.getElementById('tab-play').classList.toggle('active', t === 'play');
-  document.getElementById('tab-import').classList.toggle('active', t === 'import');
-  document.getElementById('panel-play').style.display = t === 'play' ? '' : 'none';
-  document.getElementById('panel-import').style.display = t === 'import' ? '' : 'none';
-}
-
-function importJSON() {
-  const txt = document.getElementById('json-input').value.trim();
-  const msg = document.getElementById('import-msg');
-  try {
-    const data = JSON.parse(txt);
-    if (!data.songs || !Array.isArray(data.songs) || data.songs.length < 4) {
-      msg.className = 'err'; msg.textContent = '至少需要 4 首歌曲。'; return;
-    }
-    songs = data.songs;
-    selectedCats.clear();
-    msg.className = 'ok'; msg.textContent = `✓ 成功匯入 ${songs.length} 首歌曲！`;
-    renderCats();
-    document.getElementById('json-input').value = '';
-    setTimeout(() => switchTab('play'), 800);
-  } catch(e) {
-    msg.className = 'err'; msg.textContent = 'JSON 格式錯誤：' + e.message;
-  }
-}
-
-// ── Game logic ────────────────────────────────────────────
 function startGame() {
-  let pool = songs.filter(s => getExpandedCats(selectedCats).has(s.category));
+  const pool = songs.filter(s => getExpandedCats(selectedCats).has(s.category));
   if (pool.length < 4) { alert('選取分類歌曲不足 4 首，請調整分類。'); return; }
   queue = shuffle([...pool]).slice(0, Math.min(pool.length, 10));
   current = 0; score = 0;
@@ -580,24 +484,18 @@ function loadQuestion() {
   document.getElementById('score-txt').textContent = `得分：${score}`;
   document.getElementById('feedback').style.display = 'none';
   document.getElementById('next-btn').style.display = 'none';
-
   buildOptionButtons(q.answer);
-
-  if (ytReady && window.YT && window.YT.Player) {
+  if (ytReady && window.YT?.Player) {
     createPlayer(q.youtubeId, seg.start, seg.end);
   } else {
     const wait = setInterval(() => {
-      if (ytReady && window.YT && window.YT.Player) { 
-        clearInterval(wait); 
-        createPlayer(q.youtubeId, seg.start, seg.end); 
-      }
+      if (ytReady && window.YT?.Player) { clearInterval(wait); createPlayer(q.youtubeId, seg.start, seg.end); }
     }, 200);
   }
 }
 
 function buildOptionButtons(correct) {
-  const pool = getAllAnswers().filter(a => a !== correct);
-  const opts = shuffle([correct, ...shuffle(pool).slice(0, 3)]);
+  const opts = shuffle([correct, ...shuffle(getAllAnswers().filter(a => a !== correct)).slice(0, 3)]);
   const grid = document.getElementById('options-grid');
   grid.innerHTML = '';
   opts.forEach(opt => {
@@ -613,15 +511,11 @@ function handleAnswer(btn, chosen, correct) {
   if (answered) return;
   answered = true;
   clearTimers();
-  if (ytPlayer && typeof ytPlayer.pauseVideo === 'function') {
-    try { ytPlayer.pauseVideo(); } catch(err) {}
-  }
-
+  try { ytPlayer?.pauseVideo(); } catch(e) {}
   document.querySelectorAll('.opt-btn').forEach(b => {
     b.disabled = true;
     if (b.textContent === correct) b.classList.add('correct');
   });
-
   const fb = document.getElementById('feedback');
   if (chosen === correct) {
     score++;
@@ -655,13 +549,12 @@ function showResult() {
   const pct = Math.round(score / queue.length * 100);
   document.getElementById('result-score').textContent = `${score} / ${queue.length}`;
   document.getElementById('result-label').textContent = `答對率 ${pct}%`;
-  const levels = [
+  const lv = [
     { min: 90, emoji: '🏆', msg: 'FF14音樂達人！滿分到手！' },
     { min: 60, emoji: '🎵', msg: '相當厲害，繼續加油！' },
     { min: 30, emoji: '🎧', msg: '還不錯，多聽多練！' },
     { min: 0,  emoji: '😅', msg: '再接再厲，你可以的！' },
-  ];
-  const lv = levels.find(l => pct >= l.min);
+  ].find(l => pct >= l.min);
   document.getElementById('result-emoji').textContent = lv.emoji;
   document.getElementById('result-msg').textContent = lv.msg;
 }
@@ -683,7 +576,7 @@ function shuffle(arr) {
   return arr;
 }
 
-renderCats();
+loadSongs();
 </script>
 </body>
 </html>
