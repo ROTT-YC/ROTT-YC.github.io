@@ -1,0 +1,154 @@
+{
+  "songs": [
+    {
+      "id": 1,
+      "youtubeId": "vWgpJ0k820w",
+      "segments": [
+        { "start": 42, "end": 55 },
+        { "start": 163, "end": 175 },
+        { "start": 246, "end": 266 }
+      ],
+      "answer": "Flow",
+      "category": "豆芽"
+    },
+    {
+      "id": 2,
+      "youtubeId": "ne1w3IYXMug",
+      "segments": [
+        { "start": 880, "end": 920 }
+      ],
+      "answer": "忘卻的此方(絕 光暗未來殲滅戰 p5)",
+      "category": "絕"
+    },
+    {
+      "id": 3,
+      "youtubeId": "3pGCGgyE_8Q",
+      "segments": [
+        { "start": 0, "end": 30 },
+        { "start": 88, "end": 105 }
+      ],
+      "answer": "Ultima's Perfection (零式萬魔殿天獄篇4層p2)",
+      "category": "絕"
+    },
+    {
+      "id": 4,
+      "youtubeId": "NwPePF24Evs",
+      "segments": [
+        { "start": 0, "end": 36 },
+        { "start": 36, "end": 55 }
+      ],
+      "answer": "Seeking Purpose (佐拉迦殲滅戰)",
+      "category": "豆芽"
+    },
+    {
+      "id": 5,
+      "youtubeId": "T9Aa_LtzrdA",
+      "segments": [
+        { "start": 0, "end": 20 },
+        { "start": 70, "end": 87 },
+        { "start": 135, "end": 143 }
+      ],
+      "answer": "Equilibrium (索菲亞殲滅戰)",
+      "category": "豆花"
+    },
+    {
+      "id": 6,
+      "youtubeId": "SQcqa8drd9E",
+      "segments": [
+        { "start": 0, "end": 15 },
+        { "start": 46, "end": 70 },
+        { "start": 85, "end": 101 }
+      ],
+      "answer": "It's Showtime! (阿卡狄亞登天鬥技場 輕量級一層 黑貓)",
+      "category": "豆花"
+    },
+    {
+      "id": 7,
+      "youtubeId": "wG3uq8dH_Fo",
+      "segments": [
+        { "start": 0, "end": 15 },
+        { "start": 89, "end": 95 },
+        { "start": 95, "end": 107 }
+      ],
+      "answer": "Bee My Honey (阿卡狄亞登天鬥技場 輕量級二層 蜂蜂小甜心)",
+      "category": "豆花"
+    },
+    {
+      "id": 8,
+      "youtubeId": "6ugtWT_iNqw",
+      "segments": [
+        { "start": 3, "end": 10 },
+        { "start": 113, "end": 130 }
+      ],
+      "answer": "5.0主題曲",
+      "category": "豆芽"
+    },
+    {
+      "id": 9,
+      "youtubeId": "guDguPQvRCQ",
+      "segments": [
+        { "start": 28, "end": 40 }
+      ],
+      "answer": "十二神-月與慈愛",
+      "category": "豆花"
+    },
+    {
+      "id": 10,
+      "youtubeId": "_htiXfLqXxU",
+      "segments": [
+        { "start": 0, "end": 7 }
+      ],
+      "answer": "尤特蘿普",
+      "category": "豆花"
+    },
+    {
+      "id": 11,
+      "youtubeId": "0lEo_QSOC8Q",
+      "segments": [
+        { "start": 0, "end": 5 }
+      ],
+      "answer": "老闆",
+      "category": "豆花"
+    },
+    {
+      "id": 12,
+      "youtubeId": "nih4x5hv89Q",
+      "segments": [
+        { "start": 0, "end": 5 }
+      ],
+      "answer": "十二神-納爾札爾",
+      "category": "豆花"
+    },
+    {
+      "id": 13,
+      "youtubeId": "WbGIB6ffzLM",
+      "segments": [
+        { "start": 0, "end": 10 },
+        { "start": 95, "end": 110 }
+      ],
+      "answer": "天坑道中",
+      "category": "豆芽"
+    },
+    {
+      "id": 14,
+      "youtubeId": "A70LWm3qSZo",
+      "segments": [
+        { "start": 30, "end": 50 },
+        { "start": 65, "end": 90 }
+      ],
+      "answer": "博茲雅-甘戈斯",
+      "category": "絕"
+    },
+    {
+      "id": 15,
+      "youtubeId": "Rn8bylpP65c",
+      "segments": [
+        { "start": 0, "end": 15 },
+        { "start": 100, "end": 115 },
+        { "start": 283, "end": 293 }
+      ],
+      "answer": "拉姆減滅戰~雷光雷鳴~",
+      "category": "豆芽"
+    }
+  ]
+}
