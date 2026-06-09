@@ -178,14 +178,13 @@
 
   /* Player */
   #player-container {
-    background: var(--surface2);
-    border-radius: var(--radius-sm);
+    position: absolute;
+    width: 1px;
+    height: 1px;
     overflow: hidden;
-    margin-bottom: 1.25rem;
-    position: relative;
+    opacity: 0;
+    pointer-events: none;
   }
-  #yt-player { display: block; width: 100%; }
-
   /* Options */
   .options-grid {
     display: grid;
@@ -653,7 +652,7 @@ function showResult() {
   document.getElementById('result-score').textContent = `${score} / ${queue.length}`;
   document.getElementById('result-label').textContent = `答對率 ${pct}%`;
   const levels = [
-    { min: 90, emoji: '🏆', msg: 'FF14音樂達人！滿分幾乎到手！' },
+    { min: 90, emoji: '🏆', msg: 'FF14音樂達人！滿分到手！' },
     { min: 60, emoji: '🎵', msg: '相當厲害，繼續加油！' },
     { min: 30, emoji: '🎧', msg: '還不錯，多聽多練！' },
     { min: 0,  emoji: '😅', msg: '再接再厲，你可以的！' },
