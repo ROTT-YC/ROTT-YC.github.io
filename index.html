@@ -389,32 +389,34 @@
 <script>
 // ── 預設歌單 ──────────────────────────────────────────────
 let songs = [
-  {id:1,youtubeId:"6ugtWT_iNqw",segments:[{start:3,end:10},{start:113,end:130}],answer:"5.0主題曲",category:"豆芽"},
-  {id:2,youtubeId:"guDguPQvRCQ",segments:[{start:28,end:40}],answer:"十二神-月與慈愛",category:"豆花"},
-  {id:3,youtubeId:"_htiXfLqXxU",segments:[{start:0,end:7}],answer:"尤特蘿普",category:"豆花"},
-  {id:4,youtubeId:"0lEo_QSOC8Q",segments:[{start:0,end:5}],answer:"老闆",category:"豆花"},
-  {id:5,youtubeId:"nih4x5hv89Q",segments:[{start:0,end:5}],answer:"十二神-納爾札爾",category:"豆花"},
-  {id:6,youtubeId:"WbGIB6ffzLM",segments:[{start:0,end:10},{start:95,end:110}],answer:"天坑道中",category:"豆芽"},
+  {id:1,youtubeId:"6ugtWT_iNqw",segments:[{start:3,end:10},{start:113,end:130}],answer:"ShadowBringer",category:"豆芽"},
+  {id:2,youtubeId:"guDguPQvRCQ",segments:[{start:28,end:40}],answer:"梅因菲娜",category:"豆花"},
+  {id:3,youtubeId:"_htiXfLqXxU",segments:[{start:0,end:7}],answer:"阿卡狄亞 輕量四 狡雷",category:"豆花"},
+  {id:4,youtubeId:"0lEo_QSOC8Q",segments:[{start:0,end:5}],answer:"阿卡狄亞 重量一 P1",category:"豆花"},
+  {id:5,youtubeId:"nih4x5hv89Q",segments:[{start:0,end:5}],answer:"納爾札爾",category:"豆花"},
+  {id:6,youtubeId:"WbGIB6ffzLM",segments:[{start:0,end:10},{start:95,end:110}],answer:"道中_神聖禁地深空天坑",category:"豆芽"},
   {id:7,youtubeId:"A70LWm3qSZo",segments:[{start:30,end:50},{start:65,end:90}],answer:"博茲雅-甘戈斯",category:"絕"},
   {id:8,youtubeId:"Rn8bylpP65c",segments:[{start:0,end:15},{start:100,end:115},{start:283,end:293}],answer:"拉姆減滅戰~雷光雷鳴~",category:"豆芽"}
 ];
 
 // ── 分類階層：選擇某分類時，同時包含其下層分類 ──────────────
 const CAT_HIERARCHY = {
-  "🤡絕":   ["🤡絕", "🌻豆花", "🌱豆芽"],
-  "🌻豆花": ["🌻豆花", "🌱豆芽"],
-  "🌱豆芽": ["🌱豆芽"]
+  "絕":   ["絕", "豆花", "豆芽"],
+  "豆花": ["豆花", "豆芽"],
+  "豆芽": ["豆芽"]
 };
 
 function getExpandedCats(selected) {
   const result = new Set();
   selected.forEach(c => {
+    // 這裡會精準比對帶有 Emoji 的 Key，找不到就保留原本的
     const expanded = CAT_HIERARCHY[c] || [c];
     expanded.forEach(x => result.add(x));
   });
   return result;
 }
 
+// 預設選擇（同樣改為帶有 Emoji 的版本）
 let selectedCats = new Set(['豆芽']);
 let queue = [], current = 0, score = 0, answered = false;
 let ytPlayer = null, currentSeg = null, segEndTimer = null, countdownInterval = null;
@@ -515,7 +517,7 @@ function getAllAnswers() { return [...new Set(songs.map(s => s.answer))]; }
 
 function renderCats() {
   const grid = document.getElementById('cat-grid');
-  const cats = ['豆芽', '豆花', '絕'];
+  const cats = ['🌱豆芽', '🌻豆花', '🤡絕'];
 
   grid.innerHTML = '';
   cats.forEach(c => {
