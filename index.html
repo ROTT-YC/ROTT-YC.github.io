@@ -178,13 +178,13 @@
 
   /* Player */
   #player-container {
-    /* 修正：移除背景色和 overflow，將影片畫面隱藏但 API 可運作 */
+    background: var(--surface2);
     border-radius: var(--radius-sm);
+    overflow: hidden;
     margin-bottom: 1.25rem;
     position: relative;
-    /* 這裡不再設定 width/height，交給 JS 將影片設為 0x0 */
   }
-  #yt-player { display: block; }
+  #yt-player { display: block; width: 100%; }
 
   /* Options */
   .options-grid {
@@ -395,10 +395,27 @@ let songs = [
   {id:4,youtubeId:"0lEo_QSOC8Q",segments:[{start:0,end:5}],answer:"老闆",category:"豆花"},
   {id:5,youtubeId:"nih4x5hv89Q",segments:[{start:0,end:5}],answer:"十二神-納爾札爾",category:"豆花"},
   {id:6,youtubeId:"WbGIB6ffzLM",segments:[{start:0,end:10},{start:95,end:110}],answer:"天坑道中",category:"豆芽"},
-  {id:7,youtubeId:"A70LWm3qSZo",segments:[{start:30,end:50},{start:65,end:90}],answer:"博茲雅-甘戈斯",category:"絕"}
+  {id:7,youtubeId:"A70LWm3qSZo",segments:[{start:30,end:50},{start:65,end:90}],answer:"博茲雅-甘戈斯",category:"絕"},
+  {id:8,youtubeId:"Rn8bylpP65c",segments:[{start:0,end:15},{start:100,end:115},{start:283,end:293}],answer:"拉姆減滅戰~雷光雷鳴~",category:"豆芽"}
 ];
 
-let selectedCats = new Set();
+// ── 分類階層：選擇某分類時，同時包含其下層分類 ──────────────
+const CAT_HIERARCHY = {
+  "🤡絕":   ["🤡絕", "🌻豆花", "🌱豆芽"],
+  "🌻豆花": ["🌻豆花", "🌱豆芽"],
+  "🌱豆芽": ["🌱豆芽"]
+};
+
+function getExpandedCats(selected) {
+  const result = new Set();
+  selected.forEach(c => {
+    const expanded = CAT_HIERARCHY[c] || [c];
+    expanded.forEach(x => result.add(x));
+  });
+  return result;
+}
+
+let selectedCats = new Set(['豆芽']);
 let queue = [], current = 0, score = 0, answered = false;
 let ytPlayer = null, currentSeg = null, segEndTimer = null, countdownInterval = null;
 let ytReady = false;
@@ -438,10 +455,9 @@ function createPlayer(videoId, startSec, endSec) {
     playerVarsObj.origin = window.location.origin;
   }
 
-  // 關鍵修正：將影片寬高設為 '0'，隱藏畫面
   ytPlayer = new YT.Player('yt-player', {
-    height: '0',
-    width: '0',
+    height: '220',
+    width: '100%',
     videoId: videoId,
     playerVars: playerVarsObj,
     events: {
@@ -498,19 +514,16 @@ function getAllAnswers() { return [...new Set(songs.map(s => s.answer))]; }
 
 function renderCats() {
   const grid = document.getElementById('cat-grid');
-  const cats = [...new Set(songs.map(s => s.category))];
+  const cats = ['豆芽', '豆花', '絕'];
+
   grid.innerHTML = '';
-  const allBtn = document.createElement('button');
-  allBtn.className = 'cat-btn' + (selectedCats.size === 0 ? ' selected' : '');
-  allBtn.textContent = '全部';
-  allBtn.onclick = () => { selectedCats.clear(); renderCats(); };
-  grid.appendChild(allBtn);
   cats.forEach(c => {
     const btn = document.createElement('button');
     btn.className = 'cat-btn' + (selectedCats.has(c) ? ' selected' : '');
     btn.textContent = c;
     btn.onclick = () => {
-      if (selectedCats.has(c)) selectedCats.delete(c); else selectedCats.add(c);
+      selectedCats.clear();
+      selectedCats.add(c);
       renderCats();
     };
     grid.appendChild(btn);
@@ -531,7 +544,7 @@ function importJSON() {
   try {
     const data = JSON.parse(txt);
     if (!data.songs || !Array.isArray(data.songs) || data.songs.length < 4) {
-      msg.className = 'err'; msg.textContent = '至少需要 4 首歌曲，且需包含 songs 陣列。'; return;
+      msg.className = 'err'; msg.textContent = '至少需要 4 首歌曲。'; return;
     }
     songs = data.songs;
     selectedCats.clear();
@@ -546,7 +559,7 @@ function importJSON() {
 
 // ── Game logic ────────────────────────────────────────────
 function startGame() {
-  let pool = selectedCats.size === 0 ? songs : songs.filter(s => selectedCats.has(s.category));
+  let pool = songs.filter(s => getExpandedCats(selectedCats).has(s.category));
   if (pool.length < 4) { alert('選取分類歌曲不足 4 首，請調整分類。'); return; }
   queue = shuffle([...pool]).slice(0, Math.min(pool.length, 10));
   current = 0; score = 0;
@@ -640,7 +653,7 @@ function showResult() {
   document.getElementById('result-score').textContent = `${score} / ${queue.length}`;
   document.getElementById('result-label').textContent = `答對率 ${pct}%`;
   const levels = [
-    { min: 90, emoji: '🏆', msg: '音樂達人！滿分幾乎到手！' },
+    { min: 90, emoji: '🏆', msg: 'FF14音樂達人！滿分幾乎到手！' },
     { min: 60, emoji: '🎵', msg: '相當厲害，繼續加油！' },
     { min: 30, emoji: '🎧', msg: '還不錯，多聽多練！' },
     { min: 0,  emoji: '😅', msg: '再接再厲，你可以的！' },
