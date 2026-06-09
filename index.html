@@ -178,13 +178,14 @@
 
   /* Player */
   #player-container {
-    position: absolute;
-    width: 1px;
-    height: 1px;
-    overflow: hidden;
-    opacity: 0;
-    pointer-events: none;
+    /* 修正：移除背景色和 overflow，將影片畫面隱藏但 API 可運作 */
+    border-radius: var(--radius-sm);
+    margin-bottom: 1.25rem;
+    position: relative;
+    /* 這裡不再設定 width/height，交給 JS 將影片設為 0x0 */
   }
+  #yt-player { display: block; }
+ 
   /* Options */
   .options-grid {
     display: grid;
@@ -454,9 +455,10 @@ function createPlayer(videoId, startSec, endSec) {
     playerVarsObj.origin = window.location.origin;
   }
 
+  // 關鍵修正：將影片寬高設為 '0'，隱藏畫面
   ytPlayer = new YT.Player('yt-player', {
-    height: '220',
-    width: '100%',
+    height: '0',
+    width: '0',
     videoId: videoId,
     playerVars: playerVarsObj,
     events: {
