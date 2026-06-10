@@ -294,6 +294,11 @@
     <div class="card">
       <p class="section-label">選擇分類</p>
       <div class="cat-grid" id="cat-grid"></div>
+      <div style="background:rgba(124,111,247,0.08);border:0.5px solid rgba(124,111,247,0.25);border-radius:var(--radius-sm);padding:10px 14px;margin-bottom:1rem;font-size:12px;color:var(--text2);line-height:1.8;">
+        🔊 <strong style="color:var(--accent-light);">請先調低音量</strong>，片段音量可能較大<br>
+        ▶ 每題片段只播放一次，請專心聆聽<br>
+        ⏱ 片段結束後若未作答，將自動揭曉答案
+      </div>
       <button class="start-btn" id="start-btn" onclick="startGame()" disabled>載入歌單中…</button>
     </div>
     <p style="text-align:center; font-size:12px; color: var(--text2); margin-top: 0.5rem;">
@@ -415,34 +420,42 @@ window.onYouTubeIframeAPIReady = () => { ytReady = true; };
 })();
 
 let ytPlayer = null, segEndTimer = null;
+let _curStart = 0, _seeked = false;
 
 function createPlayer(videoId, startSec, endSec) {
   if (ytPlayer) { try { ytPlayer.destroy(); } catch(e) {} ytPlayer = null; }
   clearTimers();
+  _curStart = startSec; _seeked = false;
   const duration = endSec - startSec;
 
-  const playerVars = { autoplay: 1, start: startSec, end: endSec, controls: 1, rel: 0, modestbranding: 1, enablejsapi: 1 };
+  const playerVars = { autoplay: 1, start: startSec, end: endSec, controls: 0, rel: 0, modestbranding: 1, enablejsapi: 1 };
   if (window.location.protocol.startsWith('http')) playerVars.origin = window.location.origin;
 
   ytPlayer = new YT.Player('yt-player', {
-    height: '0', width: '0', videoId,
+    height: '1', width: '1', videoId,
     playerVars,
     events: {
       onReady(e) {
-        try { e.target.unMute(); e.target.setVolume(100); e.target.seekTo(startSec, true); e.target.playVideo(); }
-        catch(err) { console.log('播放器初始化微調中'); }
-        startCountdown(duration);
-        // 容錯：自動播放政策卡住時 1 秒後再試
-        setTimeout(() => {
-          if (ytPlayer && typeof ytPlayer.getPlayerState === 'function' && ytPlayer.getPlayerState() !== 1) {
-            try { ytPlayer.playVideo(); } catch(err) {}
-          }
-        }, 1000);
-        segEndTimer = setTimeout(() => {
-          try { ytPlayer && ytPlayer.pauseVideo(); } catch(err) {}
-        }, duration * 1000);
+        try { e.target.unMute(); e.target.setVolume(50); e.target.playVideo(); }
+        catch(err) {}
       },
-      onStateChange(e) { if (e.data === YT.PlayerState.ENDED) clearTimers(); }
+      onStateChange(e) {
+        // PLAYING(1)：廣告結束後音樂才真正開始，此時才 seek 到目標秒數並開始計時
+        if (e.data === YT.PlayerState.PLAYING && !_seeked) {
+          _seeked = true;
+          try { ytPlayer.seekTo(_curStart, true); } catch(err) {}
+          startCountdown(duration);
+          clearTimers();
+          segEndTimer = setTimeout(() => {
+            try { ytPlayer && ytPlayer.pauseVideo(); } catch(err) {}
+            if (!answered) autoReveal();
+          }, duration * 1000);
+        }
+        if (e.data === YT.PlayerState.ENDED) {
+          clearTimers();
+          if (!answered) autoReveal();
+        }
+      }
     }
   });
 }
@@ -465,10 +478,55 @@ let queue = [], current = 0, score = 0, answered = false;
 
 function getAllAnswers() { return [...new Set(songs.map(s => s.answer))]; }
 
+// 片段結束且未作答時自動揭曉答案
+function autoReveal() {
+  if (answered) return;
+  answered = true;
+  clearTimers();
+  const q = queue[current];
+  document.querySelectorAll('.opt-btn').forEach(b => {
+    b.disabled = true;
+    if (b.textContent === q.answer) b.classList.add('correct');
+  });
+  const fb = document.getElementById('feedback');
+  fb.className = 'feedback wrong';
+  fb.textContent = `⏱ 時間到！正確答案：${q.answer}`;
+  fb.style.display = '';
+  const nb = document.getElementById('next-btn');
+  nb.style.display = '';
+  nb.textContent = current + 1 >= queue.length ? '查看結果 →' : '下一題 →';
+}
+
+// 題庫比重設定
+const CAT_WEIGHTS = {
+  '豆芽': { '豆芽': 1 },
+  '豆花': { '豆花': 0.5, '豆芽': 0.5 },
+  '絕':   { '絕': 0.4, '豆花': 0.4, '豆芽': 0.2 }
+};
+
+function buildWeightedPool(baseCat, total) {
+  const weights = CAT_WEIGHTS[baseCat] || { [baseCat]: 1 };
+  const byCat = {};
+  Object.keys(weights).forEach(c => { byCat[c] = shuffle(songs.filter(s => s.category === c)); });
+  const pool = [];
+  Object.entries(weights).forEach(([c, w]) => {
+    const count = Math.round(total * w);
+    (byCat[c] || []).slice(0, count).forEach(s => pool.push(s));
+  });
+  // 四捨五入不足時從剩餘歌曲補齊
+  const used = new Set(pool.map(s => s.id));
+  const rest = shuffle(songs.filter(s => Object.keys(weights).includes(s.category) && !used.has(s.id)));
+  let i = 0;
+  while (pool.length < total && i < rest.length) { pool.push(rest[i++]); }
+  return shuffle(pool).slice(0, total);
+}
+
 function startGame() {
-  const pool = songs.filter(s => getExpandedCats(selectedCats).has(s.category));
-  if (pool.length < 4) { alert('選取分類歌曲不足 4 首，請調整分類。'); return; }
-  queue = shuffle([...pool]).slice(0, Math.min(pool.length, 10));
+  const baseCat = [...selectedCats][0];
+  const expandedPool = songs.filter(s => getExpandedCats(selectedCats).has(s.category));
+  if (expandedPool.length < 4) { alert('選取分類歌曲不足 4 首，請調整分類。'); return; }
+  const total = Math.min(expandedPool.length, 10);
+  queue = buildWeightedPool(baseCat, total);
   current = 0; score = 0;
   document.getElementById('screen-setup').style.display = 'none';
   document.getElementById('screen-result').style.display = 'none';
